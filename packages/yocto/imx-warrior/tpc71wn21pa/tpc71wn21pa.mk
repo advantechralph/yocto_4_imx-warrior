@@ -30,7 +30,7 @@ tpc71wn21pa_yocto_machine:=imx6qtpc71wn21pa
 # tpc71wn21pa_yocto_machine:=imx6qsabresd
 tpc71wn21pa_yocto_distro:=fsl-imx-x11
 tpc71wn21pa_yocto_builddir:=build
-tpc71wn21pa_yocto_workdir:=$(builddir)/yocto/tpc71wn21pa/work
+tpc71wn21pa_yocto_workdir:=$(builddir)/yocto/tpc71wn21pa/workdir
 
 .PHONY: packages/yocto/imx-warrior/tpc71wn21pa/clean_conf
 packages/yocto/imx-warrior/tpc71wn21pa/clean_conf: 
