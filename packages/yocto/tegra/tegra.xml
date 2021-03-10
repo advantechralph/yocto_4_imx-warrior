@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+
+  <default sync-j="2" clone-depth="1"/>
+
+  <remote fetch="git://git.yoctoproject.org" name="yocto"/>
+  <remote fetch="https://github.com/OE4T" name="OE4T"/>
+
+  <project remote="yocto" revision="dunfell" name="poky" path="sources/poky" clone-depth="1"/>
+  <project remote="OE4T" name="meta-tegra" path="sources/poky/meta-tegra" revision="dunfell-l4t-r32.5.0" clone-depth="1"/>
+
+</manifest>

@@ -1,0 +1,56 @@
+From 53d8e4bfb2aa1f9cfa7f09cad619806654577b6b Mon Sep 17 00:00:00 2001
+From: Ralph Wang <ralph.wang@advantech.com.tw>
+Date: Thu, 25 Feb 2021 15:14:03 +0800
+Subject: [PATCH] fix mcu reboot unstable
+
+---
+ arch/arm/kernel/reboot.c              | 2 +-
+ drivers/watchdog/watchdog_advantech.c | 6 ++++++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/kernel/reboot.c b/arch/arm/kernel/reboot.c
+index f142a3070060..cf94609c5157 100644
+--- a/arch/arm/kernel/reboot.c
++++ b/arch/arm/kernel/reboot.c
+@@ -139,10 +139,10 @@ void machine_power_off(void)
+ extern int adv_machine_restart(void); 
+ void machine_restart(char *cmd)
+ {
++	adv_machine_restart();
+ 	local_irq_disable();
+ 	smp_send_stop();
+ 
+-	adv_machine_restart();
+ 	if (arm_pm_restart)
+ 		arm_pm_restart(reboot_mode, cmd);
+ 	else
+diff --git a/drivers/watchdog/watchdog_advantech.c b/drivers/watchdog/watchdog_advantech.c
+index 698d27e27621..f2bef1c71106 100755
+--- a/drivers/watchdog/watchdog_advantech.c
++++ b/drivers/watchdog/watchdog_advantech.c
+@@ -430,11 +430,14 @@ int adv_machine_restart(void)
+ }
+ 
+ EXPORT_SYMBOL(adv_machine_restart);
++// Advantech Ralph Wang (20210204): 
++#if 0
+ static struct notifier_block adv_wdt_restart_handler = {
+ 	.notifier_call = adv_wdt_restart_handle,
+ 	//.priority = 128,
+ 	.priority = 255,
+ };
++#endif
+ 
+ static int adv_wdt_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
+ {
+@@ -549,7 +552,10 @@ static int adv_wdt_i2c_probe(struct i2c_client *client, const struct i2c_device_
+ static int __exit adv_wdt_i2c_remove(struct i2c_client *client)
+ {
+ 	misc_deregister(&adv_wdt_miscdev);
++// Advantech Ralph Wang (20210204): 
++#if 0
+ 	unregister_restart_handler(&adv_wdt_restart_handler);
++#endif
+ 
+ 	if (test_bit(ADV_WDT_STATUS_STARTED, &adv_wdt.status))
+ 	{	

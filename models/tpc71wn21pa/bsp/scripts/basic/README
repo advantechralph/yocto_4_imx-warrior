@@ -1,0 +1,18 @@
+# set env
+. setenv.sh
+
+# build u-boot
+./cfg_uboot.sh -h
+./cfg_uboot.sh mx6dlubc220a1_1G_defconfig
+./mk_uboot-imx.sh 
+./mk_uboot.sh 
+
+# build kernel
+./cfg_kernel.sh -h
+./cfg_kernel.sh imx_v7_adv_defconfig
+./mk_kernel.sh imx6dl-ubc220-a1
+
+# burning sd card (Yocto2.1)
+sudo ./mksd_recovery-linux.sh /dev/sdb
+# burning sd card (Ubuntu16.04.4)
+sudo ./mksd_recovery-linux.sh /dev/sdb ubuntu16044

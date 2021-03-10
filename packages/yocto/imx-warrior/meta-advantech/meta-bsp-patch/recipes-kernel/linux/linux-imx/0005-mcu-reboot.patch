@@ -1,0 +1,106 @@
+From 94882ad9ee5c2e349b5233857908433f0452c124 Mon Sep 17 00:00:00 2001
+From: Ralph Wang <ralph.wang@advantech.com.tw>
+Date: Thu, 4 Feb 2021 14:37:16 +0800
+Subject: [PATCH] mcu reboot
+
+---
+ arch/arm/kernel/reboot.c              |  2 ++
+ drivers/watchdog/watchdog_advantech.c | 42 ++++++++++++++++++++++++---
+ 2 files changed, 40 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/kernel/reboot.c b/arch/arm/kernel/reboot.c
+index 3b2aa9a9fe26..f142a3070060 100644
+--- a/arch/arm/kernel/reboot.c
++++ b/arch/arm/kernel/reboot.c
+@@ -136,11 +136,13 @@ void machine_power_off(void)
+  * executing pre-reset code, and using RAM that the primary CPU's code wishes
+  * to use. Implementing such co-ordination would be essentially impossible.
+  */
++extern int adv_machine_restart(void); 
+ void machine_restart(char *cmd)
+ {
+ 	local_irq_disable();
+ 	smp_send_stop();
+ 
++	adv_machine_restart();
+ 	if (arm_pm_restart)
+ 		arm_pm_restart(reboot_mode, cmd);
+ 	else
+diff --git a/drivers/watchdog/watchdog_advantech.c b/drivers/watchdog/watchdog_advantech.c
+index f7d78237d3c0..698d27e27621 100755
+--- a/drivers/watchdog/watchdog_advantech.c
++++ b/drivers/watchdog/watchdog_advantech.c
+@@ -23,9 +23,7 @@
+ #include <linux/delay.h>
+ #include <linux/of_gpio.h>
+ 
+-#ifdef CONFIG_ARCH_ADVANTECH
+ #include <linux/proc-board.h>
+-#endif
+ 
+ #define ADV_WDT_WCR		0x00		/* Control Register */
+ #define ADV_WDT_WCR_WT		(0xFF << 8)	/* -> Watchdog Timeout Field */
+@@ -395,13 +393,43 @@ static int adv_wdt_restart_handle(struct notifier_block *this, unsigned long mod
+ 		adv_wdt_ping();
+ 		mdelay(2000);
+ 	}else{
+-		dev_info(adv_wdt_miscdev.parent, "%s, %d: direct timeout\n", __FUNCTION__, __LINE__);
++		dev_info(adv_wdt_miscdev.parent, "%s, %d: use MCU direct timeout function\n", __FUNCTION__, __LINE__);
+ 		i2c_smbus_write_word_data(adv_client, (u8)0x29, (u16)0x0001); 
+-		mdelay(500);
++		dev_info(adv_wdt_miscdev.parent, "%s, %d: wait for MCU to trigger reboot...\n", __FUNCTION__, __LINE__);
++		while (true)
++			;
+ 	}
+ 	return NOTIFY_DONE;
+ }
+ 
++int adv_machine_restart(void)
++{
++	/* Ralph: The digits are swapped between the old and new MCU firmware version. */
++	if((adv_wdt_info.firmware_version==71)){
++		dev_info(adv_wdt_miscdev.parent, "%s, %d: Ver 1.7: use old way to reboot\n", __FUNCTION__, __LINE__);
++		if (test_and_set_bit(ADV_WDT_STATUS_OPEN, &adv_wdt.status)){
++			dev_crit(adv_wdt_miscdev.parent, "%s, %d: ERROR: ADV_WDT_STATUS_OPEN!!!!\n", __FUNCTION__, __LINE__);
++			return -EBUSY;
++		}
++		adv_wdt_start();
++		adv_wdt_ping();
++		mdelay(500);
++		adv_wdt.timeout = 10;
++		adv_wdt_i2c_set_timeout(adv_client, adv_wdt.timeout / 10);
++		adv_wdt_ping();
++		mdelay(2000);
++	}else{
++		dev_info(adv_wdt_miscdev.parent, "%s, %d: use MCU direct timeout function\n", __FUNCTION__, __LINE__);
++		mdelay(100);
++		i2c_smbus_write_word_data(adv_client, (u8)0x29, (u16)0x0001); 
++		// dev_info(adv_wdt_miscdev.parent, "%s, %d: wait for MCU to trigger reboot...\n", __FUNCTION__, __LINE__);
++		while (true)
++			;
++	}
++	return 0;
++}
++
++EXPORT_SYMBOL(adv_machine_restart);
+ static struct notifier_block adv_wdt_restart_handler = {
+ 	.notifier_call = adv_wdt_restart_handle,
+ 	//.priority = 128,
+@@ -499,11 +527,17 @@ static int adv_wdt_i2c_probe(struct i2c_client *client, const struct i2c_device_
+ 			"Advantech Watchdog Timer enabled. timeout=%ds (nowayout=%d), Ver.%d\n",
+ 			adv_wdt.timeout, nowayout, adv_wdt_info.firmware_version);
+ 
++// Advantech Ralph Wang (20210204): 
++//   The restart handler function will be in rcu read critical section, and kernel will show WARN_ON if to execute  i2c function in it. 
++//   Because i2c function will call the functions like usleep_range() or schedule(), and these will cause rcu lock nesting. 
++//   We change to call adv_machine_restart() in machine_restart(). 
++#if 0
+ 	ret = register_restart_handler(&adv_wdt_restart_handler);
+ 	if (ret) {
+ 		pr_err("cannot register restart handler (err=%d)\n", ret);
+ 		goto fail;
+ 	}
++#endif
+ 
+ 	return 0;
+ 

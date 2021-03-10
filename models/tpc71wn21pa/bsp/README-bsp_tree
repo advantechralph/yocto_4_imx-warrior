@@ -1,0 +1,31 @@
+.
+├── image
+│   ├── adv_logo_1024x600_32bpp.bmp
+│   ├── imx6q-tpc71w-n21pa.dtb
+│   ├── SPL
+│   ├── u-boot_crc.bin
+│   ├── u-boot_crc.bin.crc
+│   ├── u-boot.imx
+│   ├── version
+│   ├── yocto27.tar.gz
+│   └── zImage
+└── scripts
+    ├── backup_emmc_rootfs_to_sdcard.sh
+    ├── backup_emmc_to_sdcard.sh
+    ├── chroot.sh
+    ├── etp_write
+    ├── Factory-final.sh
+    ├── Factory-linux.sh
+    ├── flash_erase
+    ├── hostname_write.sh
+    ├── mac_write_linux
+    ├── mkinand-linux.sh
+    ├── mksd_recovery-linux_boot-from-sd.sh
+    ├── mksd_recovery-linux.sh
+    ├── mkspi-advboot.sh
+    ├── mtd_debug
+    ├── README
+    ├── touch_ecc.sh
+    └── touch_fa.sh
+
+2 directories, 26 files

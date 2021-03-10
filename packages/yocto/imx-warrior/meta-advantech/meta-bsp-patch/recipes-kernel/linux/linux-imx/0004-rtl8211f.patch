@@ -1,0 +1,91 @@
+From 6c38fa2ce5a1333d18503c5968eb6710089ad3a0 Mon Sep 17 00:00:00 2001
+From: Ralph Wang <ralph.wang@advantech.com.tw>
+Date: Tue, 12 Jan 2021 17:49:30 +0800
+Subject: [PATCH] fine tune realtek phy
+
+---
+ drivers/net/phy/realtek.c | 33 +++++++++++++++++++++++++++++++++
+ 1 file changed, 33 insertions(+)
+
+diff --git a/drivers/net/phy/realtek.c b/drivers/net/phy/realtek.c
+index 271e8adc39f1..84d70cbb7dc6 100644
+--- a/drivers/net/phy/realtek.c
++++ b/drivers/net/phy/realtek.c
+@@ -30,7 +30,11 @@
+ 
+ #define RTL821x_PAGE_SELECT			0x1f
+ 
++#if defined (CONFIG_ARCH_ADVANTECH)
+ #define RTL8211F_INSR				0x1d
++#else
++#define RTL8211F_INSR				0x13
++#endif
+ 
+ #define RTL8211F_TX_DELAY			BIT(8)
+ 
+@@ -76,7 +80,12 @@ static int rtl8211f_ack_interrupt(struct phy_device *phydev)
+ {
+ 	int err;
+ 
++#if defined (CONFIG_ARCH_ADVANTECH)
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0);
++	err = phy_read(phydev, RTL8211F_INSR);
++#else
+ 	err = phy_read_paged(phydev, 0xa43, RTL8211F_INSR);
++#endif
+ 
+ 	return (err < 0) ? err : 0;
+ }
+@@ -128,7 +137,12 @@ static int rtl8211f_config_intr(struct phy_device *phydev)
+ 	else
+ 		val = 0;
+ 
++#if defined (CONFIG_ARCH_ADVANTECH)
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0);
++	return phy_write(phydev, RTL821x_INSR, val);
++#else
+ 	return phy_write_paged(phydev, 0xa42, RTL821x_INER, val);
++#endif
+ }
+ 
+ static int rtl8211_config_aneg(struct phy_device *phydev)
+@@ -171,12 +185,29 @@ static int rtl8211f_config_init(struct phy_device *phydev)
+ 	if (ret < 0)
+ 		return ret;
+ 
++#if defined (CONFIG_ARCH_ADVANTECH)
++	int txdelay;
++	val = RTL8211F_TX_DELAY;
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0xd08);
++	txdelay = phy_read(phydev, 0x11);
++	phy_write(phydev, 0x11, (txdelay & ~RTL8211F_TX_DELAY) | val);
++
++	/* restore to default page 0 */
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0);
++
++	/* disable EEE green ethernet */
++	phy_write(phydev, 0x1B, 0x8011);
++	phy_write(phydev, 0x1C, 0x573f);
++
++	return ret;
++#else
+ 	/* enable TX-delay for rgmii-id and rgmii-txid, otherwise disable it */
+ 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_ID ||
+ 	    phydev->interface == PHY_INTERFACE_MODE_RGMII_TXID)
+ 		val = RTL8211F_TX_DELAY;
+ 
+ 	return phy_modify_paged(phydev, 0xd08, 0x11, RTL8211F_TX_DELAY, val);
++#endif
+ }
+ 
+ static int rtl8211b_suspend(struct phy_device *phydev)
+@@ -284,7 +315,9 @@ static struct phy_driver realtek_drvs[] = {
+ 		.phy_id_mask	= 0x001fffff,
+ 		.features	= PHY_GBIT_FEATURES,
+ 		.flags		= PHY_HAS_INTERRUPT,
++		.config_aneg	= &genphy_config_aneg,
+ 		.config_init	= &rtl8211f_config_init,
++		.read_status	= &genphy_read_status,
+ 		.ack_interrupt	= &rtl8211f_ack_interrupt,
+ 		.config_intr	= &rtl8211f_config_intr,
+ 		.suspend	= genphy_suspend,

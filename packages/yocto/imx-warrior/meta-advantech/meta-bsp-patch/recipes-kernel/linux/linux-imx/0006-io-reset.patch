@@ -1,0 +1,43 @@
+From a5b573fcc5207ee862f16f130c301da3c0747bfb Mon Sep 17 00:00:00 2001
+From: Ralph Wang <ralph.wang@advantech.com.tw>
+Date: Mon, 8 Feb 2021 16:52:57 +0800
+Subject: [PATCH] io reset
+
+---
+ arch/arm/boot/dts/imx6q-tpc71w-n21pa.dts | 2 ++
+ drivers/pci/controller/dwc/pci-imx6.c    | 2 +-
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/imx6q-tpc71w-n21pa.dts b/arch/arm/boot/dts/imx6q-tpc71w-n21pa.dts
+index b8a5b18d6fbc..7ec80280de11 100644
+--- a/arch/arm/boot/dts/imx6q-tpc71w-n21pa.dts
++++ b/arch/arm/boot/dts/imx6q-tpc71w-n21pa.dts
+@@ -206,6 +206,7 @@
+ 		pinctrl_pcie_1: pcie1grp-1 {
+ 			fsl,pins = <
+ 				MX6QDL_PAD_CSI0_PIXCLK__GPIO5_IO18	0x80000000	/* PCIE disable pin - WIFI_OFF# */
++				MX6QDL_PAD_EIM_CS0__GPIO2_IO23          0x80000000	/* PCIE reset pin */
+ 			>;
+ 		};
+ 	};
+@@ -339,6 +340,7 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_pcie_1>;
+ 	disable-gpio = <&gpio5 18 0>;
++	reset-gpio = <&gpio2 23 0>;
+ 	status = "okay";
+ };
+ 
+diff --git a/drivers/pci/controller/dwc/pci-imx6.c b/drivers/pci/controller/dwc/pci-imx6.c
+index a39bdaaa3253..b8bc696cea16 100644
+--- a/drivers/pci/controller/dwc/pci-imx6.c
++++ b/drivers/pci/controller/dwc/pci-imx6.c
+@@ -1046,7 +1046,7 @@ static int imx_pcie_deassert_core_reset(struct imx_pcie *imx_pcie)
+ 	if (gpio_is_valid(imx_pcie->reset_gpio)) {
+ 		gpio_set_value_cansleep(imx_pcie->reset_gpio,
+ 					imx_pcie->gpio_active_high);
+-		mdelay(20);
++		mdelay(100);
+ 		gpio_set_value_cansleep(imx_pcie->reset_gpio,
+ 					!imx_pcie->gpio_active_high);
+ 		mdelay(20);
