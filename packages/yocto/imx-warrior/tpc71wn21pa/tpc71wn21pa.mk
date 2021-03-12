@@ -11,6 +11,11 @@ packages/yocto/imx-warrior/tpc71wn21pa/repo/sync: \
 	$(builddir)/yocto/tpc71wn21pa/.repo_init \
 	$(builddir)/yocto/tpc71wn21pa/.repo_sync
 
+.PHONY: packages/yocto/imx-warrior/tpc71wn21pa/repo/clean
+packages/yocto/imx-warrior/tpc71wn21pa/repo/clean: 
+	@rm -rf $(builddir)/yocto/tpc71wn21pa/.repo_init
+	@rm -rf $(builddir)/yocto/tpc71wn21pa/.repo_sync
+
 $(builddir)/yocto/tpc71wn21pa/.manifest.git: 
 	@mkdir -p $(builddir)/yocto/tpc71wn21pa/manifest.git
 	@cd $(builddir)/yocto/tpc71wn21pa/manifest.git && git init
@@ -37,6 +42,8 @@ packages/yocto/imx-warrior/tpc71wn21pa/clean_conf:
 	@rm -rf $(builddir)/yocto/tpc71wn21pa/build
 	@rm -rf $(builddir)/yocto/tpc71wn21pa/.conf
 	@rm -rf $(builddir)/yocto/tpc71wn21pa/.extra-conf
+	@rm -rf $(builddir)/yocto/tpc71wn21pa/.manifest.git
+	@rm -rf $(builddir)/yocto/tpc71wn21pa/manifest.git
 
 .PHONY: packages/yocto/imx-warrior/tpc71wn21pa/conf
 packages/yocto/imx-warrior/tpc71wn21pa/conf: \
@@ -106,4 +113,8 @@ packages/yocto/imx-warrior/tpc71wn21pa/bitbake/env/%: packages/yocto/imx-warrior
 packages/yocto/imx-warrior/tpc71wn21pa/bitbake/%: packages/yocto/imx-warrior/tpc71wn21pa/conf
 	@bitbake_target=$$(echo "$$(basename $(@))"); \
 		cd $(builddir)/yocto/tpc71wn21pa && source setup-environment $(tpc71wn21pa_yocto_builddir) && bitbake $${bitbake_target};
+
+.PHONY: downloadall
+downloadall: packages/yocto/imx-warrior/tpc71wn21pa/conf
+	@cd $(builddir)/yocto/tpc71wn21pa && source setup-environment $(tpc71wn21pa_yocto_builddir) && bitbake fsl-image-qt5 --runall=fetch;
 
